@@ -5,25 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
-
-export interface CategoryLevel {
-  id: string;
-  name: string;
-}
-
-export interface CategoryRef {
-  dimension: CategoryLevel;
-  theme: CategoryLevel;
-  direction: CategoryLevel;
-}
-
-export interface MaterialAnalysisInput {
-  /** @minLength 20 */
-  content: string;
-}
+import type { CategoryRef } from './categoryRef';
 
 export interface MaterialAnalysis {
   title: string;
@@ -37,8 +19,3 @@ export interface MaterialAnalysis {
   argument_types: string[];
   core_value: string;
 }
-
-export interface ErrorResponse {
-  error: string;
-}
-

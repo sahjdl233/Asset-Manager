@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: materials
+    description: AI-assisted study material organization
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /materials/analyze:
+    post:
+      operationId: analyzeMaterial
+      tags: [materials]
+      summary: Analyze a study material
+      description: Extracts a structured, user-editable analysis from a raw Chinese essay study material.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialAnalysisInput"
+      responses:
+        "200":
+          description: Structured material analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaterialAnalysis"
+        "400":
+          description: Invalid material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: AI analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,76 @@ components:
           type: string
       required:
         - status
+    CategoryRef:
+      type: object
+      properties:
+        dimension:
+          $ref: "#/components/schemas/CategoryLevel"
+        theme:
+          $ref: "#/components/schemas/CategoryLevel"
+        direction:
+          $ref: "#/components/schemas/CategoryLevel"
+      required:
+        - dimension
+        - theme
+        - direction
+    CategoryLevel:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+    MaterialAnalysisInput:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 20
+      required:
+        - content
+    MaterialAnalysis:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        primary:
+          $ref: "#/components/schemas/CategoryRef"
+        secondary:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/CategoryRef"
+        keywords:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+        argument_types:
+          type: array
+          maxItems: 3
+          items:
+            type: string
+        core_value:
+          type: string
+      required:
+        - title
+        - summary
+        - primary
+        - secondary
+        - keywords
+        - argument_types
+        - core_value
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 

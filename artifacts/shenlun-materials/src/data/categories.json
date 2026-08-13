@@ -1,0 +1,44 @@
+{
+  "dimensions": [
+    {
+      "id": "politics",
+      "name": "政治建设",
+      "themes": [
+        {"id": "governance", "name": "治理现代化", "directions": [{"id": "people", "name": "以人民为中心"}, {"id": "efficiency", "name": "提升治理效能"}]},
+        {"id": "integrity", "name": "作风与廉政", "directions": [{"id": "responsibility", "name": "责任担当"}, {"id": "integrity-practice", "name": "清正廉洁"}]}
+      ]
+    },
+    {
+      "id": "economy",
+      "name": "经济发展",
+      "themes": [
+        {"id": "innovation", "name": "创新驱动", "directions": [{"id": "technology", "name": "科技创新"}, {"id": "talent", "name": "人才支撑"}]},
+        {"id": "rural", "name": "乡村振兴", "directions": [{"id": "industry", "name": "产业兴旺"}, {"id": "common-prosperity", "name": "共同富裕"}]}
+      ]
+    },
+    {
+      "id": "culture",
+      "name": "文化建设",
+      "themes": [
+        {"id": "heritage", "name": "文化传承", "directions": [{"id": "confidence", "name": "文化自信"}, {"id": "inheritance", "name": "守正创新"}]},
+        {"id": "civilization", "name": "文明实践", "directions": [{"id": "ethics", "name": "道德建设"}, {"id": "community", "name": "文明风尚"}]}
+      ]
+    },
+    {
+      "id": "society",
+      "name": "社会治理",
+      "themes": [
+        {"id": "livelihood", "name": "民生保障", "directions": [{"id": "service", "name": "公共服务"}, {"id": "fairness", "name": "公平正义"}]},
+        {"id": "grassroots", "name": "基层治理", "directions": [{"id": "co-construction", "name": "共建共治"}, {"id": "rule-of-law", "name": "法治思维"}]}
+      ]
+    },
+    {
+      "id": "ecology",
+      "name": "生态文明",
+      "themes": [
+        {"id": "green", "name": "绿色发展", "directions": [{"id": "low-carbon", "name": "低碳转型"}, {"id": "harmony", "name": "人与自然和谐"}]}
+      ]
+    }
+  ],
+  "argument_types": ["事实论据", "政策论据", "道理论据", "对比论证", "因果论证"]
+}
