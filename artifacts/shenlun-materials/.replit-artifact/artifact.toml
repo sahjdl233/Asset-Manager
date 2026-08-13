@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "申论素材库"
+description = "面向个人申论备考的素材整理工作台：把新闻、政策与案例通过 AI 提炼为可检索、可复习、可导出的结构化论据，并由用户最终确认保存。"
+version = "1.0.0"
+id = "artifacts/shenlun-materials"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25593
+
+[services.development]
+run = "pnpm --filter @workspace/shenlun-materials run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/shenlun-materials", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/shenlun-materials/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25593"
+BASE_PATH = "/"
