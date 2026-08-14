@@ -1,0 +1,2 @@
+- [申论分类词表](shenlun-category-source.md) — 用户提供的正式分类 JSON 是唯一分类来源，界面与 AI 约束必须以它为准。
+- [浏览器直连 AI 与导出](browser-ai-and-markdown.md) — 用户明确要求在静态页面填写兼容接口与 Key，并按上传模板导出 Markdown。

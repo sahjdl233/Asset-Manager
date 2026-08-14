@@ -1,44 +1,103 @@
 {
+  "version": "1.0",
+  "name": "申论素材分类体系",
+  "description": "用于申论素材整理、AI分类与前端检索的四层分类词表",
   "dimensions": [
+    { "id": "economy", "name": "经济" },
+    { "id": "politics", "name": "政治" },
+    { "id": "culture", "name": "文化" },
+    { "id": "society", "name": "社会" },
+    { "id": "ecology", "name": "生态" }
+  ],
+  "themes": [
     {
-      "id": "politics",
-      "name": "政治建设",
-      "themes": [
-        {"id": "governance", "name": "治理现代化", "directions": [{"id": "people", "name": "以人民为中心"}, {"id": "efficiency", "name": "提升治理效能"}]},
-        {"id": "integrity", "name": "作风与廉政", "directions": [{"id": "responsibility", "name": "责任担当"}, {"id": "integrity-practice", "name": "清正廉洁"}]}
+      "id": "rural_revitalization",
+      "name": "乡村振兴",
+      "directions": [
+        { "id": "industrial_prosperity", "name": "产业兴旺", "keywords": ["特色农业", "农村电商", "乡村旅游", "产业链延伸", "集体经济"] },
+        { "id": "talent_support", "name": "人才支撑", "keywords": ["新农人", "科技特派员", "返乡创业", "职业农民", "人才下沉"] },
+        { "id": "cultural_revitalization", "name": "文化振兴", "keywords": ["乡风文明", "移风易俗", "传统村落保护", "村规民约", "文化礼堂"] },
+        { "id": "ecological_livability", "name": "生态宜居", "keywords": ["人居环境整治", "厕所革命", "污水垃圾处理", "生态补偿", "绿色农业"] },
+        { "id": "organizational_revitalization", "name": "组织振兴", "keywords": ["基层党组织", "村民自治", "村务公开", "法治乡村", "平安建设"] }
       ]
     },
     {
-      "id": "economy",
-      "name": "经济发展",
-      "themes": [
-        {"id": "innovation", "name": "创新驱动", "directions": [{"id": "technology", "name": "科技创新"}, {"id": "talent", "name": "人才支撑"}]},
-        {"id": "rural", "name": "乡村振兴", "directions": [{"id": "industry", "name": "产业兴旺"}, {"id": "common-prosperity", "name": "共同富裕"}]}
+      "id": "party_building",
+      "name": "党的建设",
+      "directions": [
+        { "id": "party_leadership", "name": "党建引领", "keywords": ["组织建设", "先锋模范", "思想武装", "党史学习教育"] },
+        { "id": "practical_responsibility", "name": "实干担当", "keywords": ["调查研究", "基层减负", "担当作为", "斗争精神"] },
+        { "id": "integrity", "name": "清正廉洁", "keywords": ["八项规定", "作风建设", "反腐倡廉", "纪律规矩"] },
+        { "id": "people_oriented_service", "name": "服务为民", "keywords": ["群众路线", "便民服务", "接诉即办", "人民立场"] },
+        { "id": "cadre_building", "name": "干部建设", "keywords": ["能力提升", "激励容错", "能上能下", "干部交流"] }
       ]
     },
     {
-      "id": "culture",
+      "id": "technological_innovation",
+      "name": "科技创新",
+      "directions": [
+        { "id": "independent_innovation", "name": "自主自强", "keywords": ["核心技术", "基础研究", "战略力量", "揭榜挂帅"] },
+        { "id": "digital_empowerment", "name": "数字赋能", "keywords": ["人工智能", "产业数字化", "智慧场景", "数据要素"] },
+        { "id": "talent_driven_innovation", "name": "人才驱动", "keywords": ["人才评价", "青年科学家", "科学家精神", "工匠精神"] },
+        { "id": "achievement_transformation", "name": "成果转化", "keywords": ["产学研用", "科创平台", "首台套", "技术经理人"] },
+        { "id": "innovation_ecosystem", "name": "创新生态", "keywords": ["创新文化", "科技金融", "容错机制", "科学普及"] }
+      ]
+    },
+    {
+      "id": "cultural_development",
       "name": "文化建设",
-      "themes": [
-        {"id": "heritage", "name": "文化传承", "directions": [{"id": "confidence", "name": "文化自信"}, {"id": "inheritance", "name": "守正创新"}]},
-        {"id": "civilization", "name": "文明实践", "directions": [{"id": "ethics", "name": "道德建设"}, {"id": "community", "name": "文明风尚"}]}
+      "directions": [
+        { "id": "cultural_confidence", "name": "文化自信", "keywords": ["核心价值观", "优秀传统", "革命文化", "文明互鉴"] },
+        { "id": "inheritance_innovation", "name": "传承创新", "keywords": ["非遗保护", "文物活化", "老字号", "文化基因"] },
+        { "id": "public_culture", "name": "公共文化", "keywords": ["文化惠民", "服务均等", "数字资源", "设施建设"] },
+        { "id": "cultural_industry", "name": "文化产业", "keywords": ["文旅融合", "创意设计", "国潮出海", "知识产权"] },
+        { "id": "spiritual_civilization", "name": "精神文明", "keywords": ["移风易俗", "志愿服务", "诚信建设", "家风家教"] }
       ]
     },
     {
-      "id": "society",
+      "id": "economic_development",
+      "name": "经济发展",
+      "directions": [
+        { "id": "high_quality_development", "name": "高质量发展", "keywords": ["质效提升", "现代化经济体系", "新发展格局"] },
+        { "id": "innovation_driven_growth", "name": "创新驱动", "keywords": ["核心技术", "数字中国", "专精特新", "新质生产力"] },
+        { "id": "industrial_upgrading", "name": "产业升级", "keywords": ["三产融合", "高端制造", "数字经济", "营商环境"] },
+        { "id": "new_consumption", "name": "新型消费", "keywords": ["消费升级", "数字经济", "直播电商", "县域商业"] },
+        { "id": "regional_coordination", "name": "区域协调", "keywords": ["城乡融合", "新型城镇化", "共同富裕", "飞地经济"] }
+      ]
+    },
+    {
+      "id": "social_governance",
       "name": "社会治理",
-      "themes": [
-        {"id": "livelihood", "name": "民生保障", "directions": [{"id": "service", "name": "公共服务"}, {"id": "fairness", "name": "公平正义"}]},
-        {"id": "grassroots", "name": "基层治理", "directions": [{"id": "co-construction", "name": "共建共治"}, {"id": "rule-of-law", "name": "法治思维"}]}
+      "directions": [
+        { "id": "grassroots_governance", "name": "基层治理", "keywords": ["三治融合", "减负赋能", "吹哨报到", "枫桥经验"] },
+        { "id": "digital_governance", "name": "数字治理", "keywords": ["一网通办", "数据共享", "智慧城市", "数字鸿沟"] },
+        { "id": "risk_prevention", "name": "风险防控", "keywords": ["源头化解", "信用体系", "市场监督", "金融风险"] },
+        { "id": "multi_party_governance", "name": "多元共治", "keywords": ["社会组织", "志愿服务", "公益慈善", "政企合作"] },
+        { "id": "public_safety", "name": "公共安全", "keywords": ["应急体系", "安全生产", "防灾减灾", "公共卫生"] }
       ]
     },
     {
-      "id": "ecology",
-      "name": "生态文明",
-      "themes": [
-        {"id": "green", "name": "绿色发展", "directions": [{"id": "low-carbon", "name": "低碳转型"}, {"id": "harmony", "name": "人与自然和谐"}]}
+      "id": "livelihood_security",
+      "name": "民生保障",
+      "directions": [
+        { "id": "education_equity", "name": "教育均衡", "keywords": ["普惠发展", "双减政策", "城乡资源", "职业教育"] },
+        { "id": "healthy_china", "name": "健康中国", "keywords": ["分级诊疗", "医保改革", "中医药", "公共卫生"] },
+        { "id": "elderly_children", "name": "一老一小", "keywords": ["普惠养老", "婴幼儿照护", "适老化改造", "老龄产业"] },
+        { "id": "social_security", "name": "社会保障", "keywords": ["养老保险", "救助体系", "长护险", "保障住房"] },
+        { "id": "employment_priority", "name": "就业优先", "keywords": ["稳岗扩岗", "技能提升", "重点帮扶", "灵活就业"] },
+        { "id": "common_prosperity", "name": "共同富裕", "keywords": ["收入分配", "三次分配", "基本公共服务均等化", "兜底保障"] }
+      ]
+    },
+    {
+      "id": "ecological_environment",
+      "name": "生态环保",
+      "directions": [
+        { "id": "green_development", "name": "绿色发展", "keywords": ["循环经济", "能源结构", "绿色金融", "双碳目标"] },
+        { "id": "ecological_restoration", "name": "生态修复", "keywords": ["山水林田湖草沙", "生物多样", "国土绿化", "流域治理"] },
+        { "id": "institutional_guarantee", "name": "制度保障", "keywords": ["生态红线", "生态补偿", "环保督察", "河湖长制"] },
+        { "id": "value_transformation", "name": "价值转化", "keywords": ["生态产品", "碳汇交易", "生态旅游", "两山理论"] },
+        { "id": "pollution_prevention", "name": "污染防治", "keywords": ["蓝天碧水净土", "面源污染", "排污许可", "环境执法"] }
       ]
     }
-  ],
-  "argument_types": ["事实论据", "政策论据", "道理论据", "对比论证", "因果论证"]
+  ]
 }
