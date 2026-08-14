@@ -14,6 +14,7 @@ import {
   Library,
   PenLine,
   Plus,
+  RefreshCw,
   Search,
   Settings,
   Sparkles,
@@ -63,6 +64,40 @@ const readOpenAISettings = (): OpenAISettings => {
 const normalizeEndpoint = (endpoint: string) => {
   const value = endpoint.trim().replace(/\/+$/, '');
   return value.endsWith('/chat/completions') ? value : `${value}/chat/completions`;
+};
+
+const normalizeModelsEndpoint = (endpoint: string) => {
+  const value = endpoint.trim().replace(/\/+$/, '');
+  if (value.endsWith('/chat/completions')) return `${value.slice(0, -'/chat/completions'.length)}/models`;
+  if (value.endsWith('/models')) return value;
+  return `${value}/models`;
+};
+
+const fetchModelsInBrowser = async (settings: OpenAISettings): Promise<string[]> => {
+  if (!settings.apiKey.trim()) throw new Error('请先填写 API Key。');
+  if (!settings.endpoint.trim()) throw new Error('请先填写接口地址。');
+  const response = await fetch(normalizeModelsEndpoint(settings.endpoint), {
+    headers: { Accept: 'application/json', Authorization: `Bearer ${settings.apiKey.trim()}` },
+  });
+  const raw = await response.text();
+  let body: unknown = null;
+  try {
+    body = raw ? JSON.parse(raw) : null;
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const message = body && typeof body === 'object' && 'error' in body
+      ? (body.error as { message?: string })?.message
+      : undefined;
+    throw new Error(message || `获取模型失败（HTTP ${response.status}）。请检查地址、Key 和跨域设置。`);
+  }
+  const candidates = Array.isArray(body) ? body : body && typeof body === 'object' && 'data' in body ? body.data : [];
+  const models = Array.isArray(candidates)
+    ? candidates.map((item) => typeof item === 'string' ? item : item && typeof item === 'object' && 'id' in item ? item.id : '').filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  if (models.length === 0) throw new Error('接口返回成功，但没有找到可用模型。你仍可以手动填写模型名称。');
+  return [...new Set(models)].sort();
 };
 
 const parseJsonContent = (content: string) => {
@@ -165,6 +200,21 @@ const downloadMarkdown = (material: Material) => {
 
 function SettingsPanel({ value, onSave, onClose }: { value: OpenAISettings; onSave: (value: OpenAISettings) => void; onClose: () => void }) {
   const [draft, setDraft] = useState(value);
+  const [models, setModels] = useState<string[]>([]);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [modelError, setModelError] = useState('');
+  const handleFetchModels = async () => {
+    setIsFetchingModels(true);
+    setModelError('');
+    try {
+      setModels(await fetchModelsInBrowser(draft));
+    } catch (error) {
+      setModels([]);
+      setModelError(error instanceof Error ? error.message : '获取模型失败，请检查接口设置。');
+    } finally {
+      setIsFetchingModels(false);
+    }
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[hsl(var(--foreground)/.35)] px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div className="paper w-full max-w-xl shadow-2xl">
@@ -175,8 +225,8 @@ function SettingsPanel({ value, onSave, onClose }: { value: OpenAISettings; onSa
         <div className="paper-body space-y-5">
           <div className="rounded-lg border border-[hsl(var(--accent)/.3)] bg-[hsl(var(--accent)/.07)] px-3 py-2.5 text-xs leading-5 text-[hsl(var(--foreground)/.75)]">请求会从浏览器直接发送到你填写的地址。Key 只保存在当前标签页的 sessionStorage 中，关闭标签页或窗口后会自动清除。</div>
           <label><span className="field-label">OpenAI 兼容接口地址</span><input data-testid="input-openai-endpoint" className="text-input px-3 py-2.5 text-sm" placeholder={DEFAULT_OPENAI_ENDPOINT} value={draft.endpoint} onChange={(event) => setDraft({ ...draft, endpoint: event.target.value })} /><span className="mt-1 block text-[11px] text-[hsl(var(--muted-foreground))]">可填写完整的 /chat/completions 地址，也可填写到 /v1。</span></label>
-          <label><span className="field-label">API Key</span><input data-testid="input-openai-key" type="password" autoComplete="off" className="text-input px-3 py-2.5 text-sm" placeholder="sk-…" value={draft.apiKey} onChange={(event) => setDraft({ ...draft, apiKey: event.target.value })} /></label>
-          <label><span className="field-label">模型名称</span><input data-testid="input-openai-model" className="text-input px-3 py-2.5 text-sm" placeholder={DEFAULT_OPENAI_MODEL} value={draft.model} onChange={(event) => setDraft({ ...draft, model: event.target.value })} /></label>
+          <label><span className="field-label">API Key</span><div className="flex gap-2"><input data-testid="input-openai-key" type="password" autoComplete="off" className="text-input min-w-0 flex-1 px-3 py-2.5 text-sm" placeholder="sk-…" value={draft.apiKey} onChange={(event) => setDraft({ ...draft, apiKey: event.target.value })} /><button data-testid="button-fetch-models" type="button" className="action-subtle shrink-0 px-3 text-xs" disabled={isFetchingModels || !draft.endpoint.trim() || !draft.apiKey.trim()} onClick={handleFetchModels}>{isFetchingModels ? <><RefreshCw size={14} className="animate-spin" />获取中…</> : <><RefreshCw size={14} />获取模型</>}</button></div>{modelError && <span data-testid="status-model-error" className="mt-1 block text-[11px] text-[hsl(var(--destructive))]">{modelError}</span>}</label>
+          <label><span className="field-label">模型名称</span><input data-testid="input-openai-model" className="text-input px-3 py-2.5 text-sm" placeholder={DEFAULT_OPENAI_MODEL} value={draft.model} onChange={(event) => setDraft({ ...draft, model: event.target.value })} />{models.length > 0 && <select data-testid="select-openai-model" className="select-input mt-2 px-3 py-2.5 text-sm" defaultValue="" onChange={(event) => { if (event.target.value) setDraft({ ...draft, model: event.target.value }); }}><option value="">从接口返回的模型中选择…</option>{models.map((model) => <option key={model} value={model}>{model}</option>)}</select>}<span className="mt-1 block text-[11px] text-[hsl(var(--muted-foreground))]">{models.length > 0 ? `已获取 ${models.length} 个模型，也可以直接手动填写。` : '也可以直接手动填写模型名称。'}</span></label>
           <div className="flex flex-wrap justify-end gap-2 border-t border-[hsl(var(--border))] pt-4"><button data-testid="button-clear-openai-settings" className="action-subtle mr-auto" onClick={() => setDraft(defaultOpenAISettings)}>清空配置</button><button data-testid="button-cancel-settings" className="action-subtle" onClick={onClose}>取消</button><button data-testid="button-save-settings" className="action-primary" onClick={() => onSave({ endpoint: draft.endpoint.trim(), apiKey: draft.apiKey, model: draft.model.trim() || DEFAULT_OPENAI_MODEL })}><Check size={15} />保存设置</button></div>
         </div>
       </div>
