@@ -96,4 +96,5 @@ npx wrangler pages deploy artifacts/shenlun-materials/dist/public --project-name
 - 构建报 `PORT environment variable is required` / `BASE_PATH environment variable is required`：旧版配置必须显式提供环境变量；当前版本已为两者提供默认值。若仍报错，在构建环境中设置 `PORT` 和 `BASE_PATH` 即可。
 - Windows 本地构建报 `Cannot find module @rollup/rollup-win32-x64-msvc`：这是依赖安装缺少 win32 原生包导致的。workspace 已通过 `supportedArchitectures` 同时解析 linux-x64 与 win32-x64 依赖；更新代码后重新执行 `pnpm install`，必要时先删除 `node_modules`。
 - 构建报 `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` / overrides 与锁文件不一致：这是旧版平台相关 `overrides` 引起的。现已移除这些平台覆盖项并重新生成锁文件；如果仍出现，请在 Cloudflare 环境变量中设置 `PNPM_VERSION=11.21.0` 后重新部署。
+- 构建报 `ERR_PNPM_IGNORED_BUILDS`：pnpm 11 默认禁止依赖的构建脚本，workspace 已通过 `allowBuilds` 放行 `esbuild` 等包；如果新增了带构建脚本的依赖，用 `pnpm approve-builds` 选择允许项并把改动提交到仓库。
 - `pnpm install` 触发 supply-chain policy 报错：根目录 `.npmrc` 设置了 `minimumReleaseAge: 1440`，会拒绝发布不足 1 天的包。保持 `pnpm-lock.yaml` 不变时一般不会触发；确需安装新包时再临时放行，不建议长期关闭。

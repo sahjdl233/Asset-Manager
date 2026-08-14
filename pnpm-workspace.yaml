@@ -77,11 +77,11 @@ supportedArchitectures:
   libc:
     - glibc
 
-onlyBuiltDependencies:
-  - '@swc/core'
-  - esbuild
-  - msw
-  - unrs-resolver
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  unrs-resolver: true
 
 overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
