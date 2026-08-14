@@ -1,4 +1,8 @@
-import type { MaterialAnalysis, CategoryRef } from '@workspace/api-client-react';
+import type { CategoryRef, MaterialAnalysis as SharedMaterialAnalysis } from '@workspace/api-client-react';
+
+export type MaterialAnalysis = SharedMaterialAnalysis & {
+  quotes?: string[];
+};
 
 export type Material = MaterialAnalysis & {
   id: string;
@@ -6,6 +10,7 @@ export type Material = MaterialAnalysis & {
   content: string;
   created_at: string;
   updated_at: string;
+  quotes: string[];
 };
 
 export const MATERIALS_KEY = 'shenlun-materials-v1';
@@ -31,7 +36,7 @@ export const emptyCategory = (): CategoryRef => ({
 
 export const makeMaterial = (analysis: MaterialAnalysis, content: string, source = '个人摘录'): Material => {
   const now = new Date().toISOString();
-  return { ...analysis, id: crypto.randomUUID(), source, content, created_at: now, updated_at: now };
+  return { ...analysis, quotes: analysis.quotes ?? [], id: crypto.randomUUID(), source, content, created_at: now, updated_at: now };
 };
 
 export const formatDate = (iso: string) =>
@@ -67,7 +72,7 @@ ${quoteBlock(material.content)}
 
 ## 金句
 
-${bulletLines([])}
+${bulletLines(material.quotes)}
 
 ---
 # 素材解析（AI整理）

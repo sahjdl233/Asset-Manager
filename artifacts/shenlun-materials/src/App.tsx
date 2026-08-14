@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { type CategoryRef, type MaterialAnalysis } from '@workspace/api-client-react';
+import { type CategoryRef } from '@workspace/api-client-react';
 import {
   AlertCircle,
   ArrowDown,
@@ -11,20 +11,23 @@ import {
   Download,
   FileText,
   Filter,
+  KeyRound,
   Library,
   PenLine,
   Plus,
   RefreshCw,
   Search,
+  ShieldCheck,
   Settings,
   Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { ExportMenu } from '@/components/export-menu';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { emptyCategory, makeMaterial, readMaterials, toMarkdown, writeMaterials, type Material } from '@/lib/materials';
+import { emptyCategory, makeMaterial, readMaterials, writeMaterials, type Material, type MaterialAnalysis } from '@/lib/materials';
 import categories from '@/data/categories.json';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 
@@ -35,6 +38,8 @@ const argumentTypes = ['政策背景', '问题表现', '原因分析', '实践�
 const OPENAI_SETTINGS_KEY = 'shenlun-openai-settings-v1';
 const DEFAULT_OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_OPENAI_MODEL = 'gpt-5-mini';
+const API_KEY_NOTICE_KEY = 'shenlun-api-key-notice-v1';
+const API_KEY_NOTICE_DELAY_SECONDS = 5;
 
 type OpenAISettings = {
   endpoint: string;
@@ -123,7 +128,7 @@ const analyzeMaterialInBrowser = async (content: string, settings: OpenAISetting
       messages: [
         {
           role: 'system',
-          content: `你是申论素材整理助手。只输出合法 JSON，不要 Markdown 代码块。严格使用下面给出的分类词表，禁止创建、改写或猜测任何分类 ID、名称、方向和关键词。primary 必须有一个主分类，secondary 最多 3 个。argument_types 只能从固定论证场景中选择，最多 3 个。keywords 最多 5 个。
+          content: `你是申论素材整理助手。只输出合法 JSON，不要 Markdown 代码块。严格使用下面给出的分类词表，禁止创建、改写或猜测任何分类 ID、名称、方向和关键词。primary 必须有一个主分类，secondary 最多 3 个。argument_types 只能从固定论证场景中选择，最多 3 个。keywords 最多 5 个。quotes 从素材中提炼 2-3 句可直接引用的金句。
 
 正式分类词表：
 ${JSON.stringify(categories, null, 2)}
@@ -139,6 +144,7 @@ JSON 结构必须为：
   "secondary": [],
   "keywords": [],
   "argument_types": [],
+  "quotes": ["从素材中提炼的金句，每句一行"],
   "core_value": "这条素材的核心价值及可迁移意义"
 }`,
         },
@@ -186,17 +192,8 @@ const normalizeAnalysis = (result: MaterialAnalysis): MaterialAnalysis => ({
   secondary: (result.secondary ?? []).slice(0, 3).map(normalizeCategory),
   keywords: (result.keywords ?? []).slice(0, 5),
   argument_types: (result.argument_types ?? []).slice(0, 3),
+  quotes: (result.quotes ?? []).map((item) => item.trim()).filter(Boolean).slice(0, 5),
 });
-
-const downloadMarkdown = (material: Material) => {
-  const blob = new Blob([toMarkdown(material)], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `${material.title || '申论素材'}.md`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
 
 function SettingsPanel({ value, onSave, onClose }: { value: OpenAISettings; onSave: (value: OpenAISettings) => void; onClose: () => void }) {
   const [draft, setDraft] = useState(value);
@@ -228,6 +225,43 @@ function SettingsPanel({ value, onSave, onClose }: { value: OpenAISettings; onSa
           <label><span className="field-label">API Key</span><div className="flex gap-2"><input data-testid="input-openai-key" type="password" autoComplete="off" className="text-input min-w-0 flex-1 px-3 py-2.5 text-sm" placeholder="sk-…" value={draft.apiKey} onChange={(event) => setDraft({ ...draft, apiKey: event.target.value })} /><button data-testid="button-fetch-models" type="button" className="action-subtle shrink-0 px-3 text-xs" disabled={isFetchingModels || !draft.endpoint.trim() || !draft.apiKey.trim()} onClick={handleFetchModels}>{isFetchingModels ? <><RefreshCw size={14} className="animate-spin" />获取中…</> : <><RefreshCw size={14} />获取模型</>}</button></div>{modelError && <span data-testid="status-model-error" className="mt-1 block text-[11px] text-[hsl(var(--destructive))]">{modelError}</span>}</label>
           <label><span className="field-label">模型名称</span><input data-testid="input-openai-model" className="text-input px-3 py-2.5 text-sm" placeholder={DEFAULT_OPENAI_MODEL} value={draft.model} onChange={(event) => setDraft({ ...draft, model: event.target.value })} />{models.length > 0 && <select data-testid="select-openai-model" className="select-input mt-2 px-3 py-2.5 text-sm" defaultValue="" onChange={(event) => { if (event.target.value) setDraft({ ...draft, model: event.target.value }); }}><option value="">从接口返回的模型中选择…</option>{models.map((model) => <option key={model} value={model}>{model}</option>)}</select>}<span className="mt-1 block text-[11px] text-[hsl(var(--muted-foreground))]">{models.length > 0 ? `已获取 ${models.length} 个模型，也可以直接手动填写。` : '也可以直接手动填写模型名称。'}</span></label>
           <div className="flex flex-wrap justify-end gap-2 border-t border-[hsl(var(--border))] pt-4"><button data-testid="button-clear-openai-settings" className="action-subtle mr-auto" onClick={() => setDraft(defaultOpenAISettings)}>清空配置</button><button data-testid="button-cancel-settings" className="action-subtle" onClick={onClose}>取消</button><button data-testid="button-save-settings" className="action-primary" onClick={() => onSave({ endpoint: draft.endpoint.trim(), apiKey: draft.apiKey, model: draft.model.trim() || DEFAULT_OPENAI_MODEL })}><Check size={15} />保存设置</button></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyNoticeModal({ open, onConfirm }: { open: boolean; onConfirm: () => void }) {
+  const [remaining, setRemaining] = useState(API_KEY_NOTICE_DELAY_SECONDS);
+
+  useEffect(() => {
+    if (!open) return;
+    setRemaining(API_KEY_NOTICE_DELAY_SECONDS);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || remaining <= 0) return;
+    const timer = window.setTimeout(() => setRemaining((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [open, remaining]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[hsl(var(--foreground)/.35)] px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="api-key-notice-title" data-testid="api-key-notice">
+      <div className="paper w-full max-w-md shadow-2xl">
+        <div className="paper-header">
+          <div className="flex items-center gap-2.5"><div className="grid h-9 w-9 place-items-center rounded-lg bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><KeyRound size={18} /></div><div><div id="api-key-notice-title" className="text-sm font-semibold">关于 API Key 的说明</div><div className="text-[11px] text-[hsl(var(--muted-foreground))]">请先阅读以下内容</div></div></div>
+        </div>
+        <div className="paper-body space-y-4">
+          <p className="text-xs leading-6 text-[hsl(var(--foreground)/.8)]">API Key 只用于向“接口设置”中填写的 OpenAI 兼容地址发起分析请求，不会被发送到其他服务器。</p>
+          <p className="text-xs leading-6 text-[hsl(var(--foreground)/.8)]">Key 保存在当前浏览器的 sessionStorage 中：仅当前标签页可见，关闭标签页后自动清除；不会写入 localStorage，也不会上传到部署平台。</p>
+          <p className="text-xs leading-6 text-[hsl(var(--foreground)/.8)]">为降低泄露风险，请勿在公用电脑上使用，也不要将 Key 分享给他人。</p>
+          <div className="flex items-start gap-2 rounded-lg border border-[hsl(var(--accent)/.3)] bg-[hsl(var(--accent)/.07)] px-3 py-2.5 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-[hsl(var(--primary))]" />确认后本说明不再自动弹出；如更换浏览器或清除站点数据，会再次显示。</div>
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[hsl(var(--border))] pt-4">
+            <span className="mono text-[10px] text-[hsl(var(--muted-foreground))]">{remaining > 0 ? `${remaining}s 后可确认` : '已阅读'}</span>
+            <button data-testid="button-api-key-notice-confirm" type="button" className="action-primary" disabled={remaining > 0} onClick={onConfirm}><Check size={15} />我知道了</button>
+          </div>
         </div>
       </div>
     </div>
@@ -369,6 +403,10 @@ function AnalysisForm({ analysis, setAnalysis }: { analysis: MaterialAnalysis; s
         <TagInput value={analysis.keywords} onChange={(value) => update('keywords', value)} placeholder="例如：社区食堂" />
       </div>
       <div>
+        <label className="field-label" htmlFor="analysis-quotes">金句 <span className="font-normal tracking-normal text-[hsl(var(--muted-foreground)/.7)]">· 每行一句</span></label>
+        <textarea id="analysis-quotes" data-testid="textarea-analysis-quotes" className="text-area min-h-[110px] px-3 py-2.5 text-sm" value={(analysis.quotes ?? []).join('\n')} onChange={(event) => update('quotes', event.target.value.split('\n').map((item) => item.trim()).filter(Boolean).slice(0, 5))} placeholder={'民生无小事，枝叶总关情。\n小食堂里也有大民生。'} />
+      </div>
+      <div>
         <div className="field-label">论据类型 <span className="font-normal tracking-normal text-[hsl(var(--muted-foreground)/.7)]">· 可多选</span></div>
         <div className="flex flex-wrap gap-2">
           {argumentTypes.map((item) => {
@@ -430,16 +468,17 @@ function Editor({ onSaved, editing, onCancelEdit, settings, onOpenSettings }: { 
   };
   const handleSave = () => {
     if (!analysis || !content.trim()) return;
-    const material = editing ? { ...editing, ...analysis, content: content.trim(), source: source.trim() || '个人摘录', updated_at: new Date().toISOString() } : makeMaterial(analysis, content.trim(), source.trim() || '个人摘录');
+    const material = editing ? { ...editing, ...analysis, quotes: analysis.quotes ?? editing.quotes ?? [], content: content.trim(), source: source.trim() || '个人摘录', updated_at: new Date().toISOString() } : makeMaterial(analysis, content.trim(), source.trim() || '个人摘录');
     onSaved(material);
     setSaveState('saved');
     window.setTimeout(() => setSaveState('idle'), 2200);
   };
-  const handleExport = () => {
-    if (!analysis || !content.trim()) return;
-    const material = editing ? { ...editing, ...analysis, content: content.trim(), source: source.trim() || '个人摘录' } : makeMaterial(analysis, content.trim(), source.trim() || '个人摘录');
-    downloadMarkdown(material);
-  };
+  const draftMaterial = useMemo(() => {
+    if (!analysis || !content.trim()) return null;
+    return editing
+      ? { ...editing, ...analysis, quotes: analysis.quotes ?? editing.quotes ?? [], content: content.trim(), source: source.trim() || '个人摘录' }
+      : makeMaterial(analysis, content.trim(), source.trim() || '个人摘录');
+  }, [editing, analysis, content, source]);
   return (
     <section id="editor" className="editor-grid rise-in-delay">
       <div className="paper">
@@ -465,19 +504,19 @@ function Editor({ onSaved, editing, onCancelEdit, settings, onOpenSettings }: { 
           <div className="flex items-center gap-2.5"><div className="grid h-7 w-7 place-items-center rounded-lg bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><Sparkles size={15} /></div><div><div className="text-sm font-semibold">AI 分析草稿</div><div className="text-[11px] text-[hsl(var(--muted-foreground))]">每一项都可以改，决定权在你</div></div></div>
           {analysis && <span className="chip chip-warm text-[10px]"><PenLine size={11} />可编辑</span>}
         </div>
-          {isAnalyzing ? <AnalysisSkeleton /> : analysis ? <div className="paper-body"><AnalysisForm analysis={analysis} setAnalysis={setAnalysis} /><div className="mt-7 flex flex-wrap justify-end gap-2 border-t border-[hsl(var(--border))] pt-5">{editing && <button data-testid="button-cancel-edit" className="action-subtle" onClick={onCancelEdit}>取消编辑</button>}<button data-testid="button-export-draft" className="action-subtle" onClick={handleExport}><Download size={16} />直接导出 Markdown</button><button data-testid="button-save-material" className="action-primary" onClick={handleSave} disabled={!analysis.title.trim()}>{saveState === 'saved' ? <><Check size={16} />已保存</> : <><Download size={16} />保存到素材库</>}</button></div></div> : <EmptyAnalysis />}
+          {isAnalyzing ? <AnalysisSkeleton /> : analysis ? <div className="paper-body"><AnalysisForm analysis={analysis} setAnalysis={setAnalysis} /><div className="mt-7 flex flex-wrap justify-end gap-2 border-t border-[hsl(var(--border))] pt-5">{editing && <button data-testid="button-cancel-edit" className="action-subtle" onClick={onCancelEdit}>取消编辑</button>}{draftMaterial && <ExportMenu material={draftMaterial} triggerTestId="button-export-draft" />}<button data-testid="button-save-material" className="action-primary" onClick={handleSave} disabled={!analysis.title.trim()}>{saveState === 'saved' ? <><Check size={16} />已保存</> : <><Download size={16} />保存到素材库</>}</button></div></div> : <EmptyAnalysis />}
       </div>
       {saveState === 'saved' && <div data-testid="status-save-success" className="toast-save fixed bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[hsl(var(--sidebar))] px-4 py-2.5 text-xs font-semibold text-[hsl(var(--sidebar-foreground))] shadow-xl"><Check size={14} className="text-[hsl(var(--sidebar-primary))]" />已放入你的素材库</div>}
     </section>
   );
 }
 
-function MaterialCard({ material, onEdit, onDelete, onExport }: { material: Material; onEdit: () => void; onDelete: () => void; onExport: () => void }) {
+function MaterialCard({ material, onEdit, onDelete }: { material: Material; onEdit: () => void; onDelete: () => void }) {
   return (
     <article data-testid={`card-material-${material.id}`} className="material-card group">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[hsl(var(--secondary)/.7)] text-[hsl(var(--primary))]"><FileText size={14} /></span><span className="mono truncate text-[10px] text-[hsl(var(--muted-foreground))]">{material.source || '个人摘录'}</span></div>
-        <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100"><button data-testid={`button-edit-material-${material.id}`} className="rounded-md border-0 bg-transparent p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="编辑素材" onClick={onEdit}><PenLine size={14} /></button><button data-testid={`button-export-material-${material.id}`} className="rounded-md border-0 bg-transparent p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="导出 Markdown" onClick={onExport}><Download size={14} /></button><button data-testid={`button-delete-material-${material.id}`} className="rounded-md border-0 bg-transparent p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--destructive)/.1)] hover:text-[hsl(var(--destructive))]" aria-label="删除素材" onClick={onDelete}><Trash2 size={14} /></button></div>
+        <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100"><button data-testid={`button-edit-material-${material.id}`} className="rounded-md border-0 bg-transparent p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="编辑素材" onClick={onEdit}><PenLine size={14} /></button><ExportMenu material={material} compact triggerTestId={`button-export-material-${material.id}`} /><button data-testid={`button-delete-material-${material.id}`} className="rounded-md border-0 bg-transparent p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--destructive)/.1)] hover:text-[hsl(var(--destructive))]" aria-label="删除素材" onClick={onDelete}><Trash2 size={14} /></button></div>
       </div>
       <h3 data-testid={`text-material-title-${material.id}`} className="serif mt-4 line-clamp-2 text-[17px] font-semibold leading-7">{material.title || '未命名素材'}</h3>
       <p data-testid={`text-material-summary-${material.id}`} className="mt-2 line-clamp-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">{material.summary}</p>
@@ -504,7 +543,7 @@ function LibrarySection({ materials, onEdit, onDelete }: { materials: Material[]
         <label className="relative flex-1"><Search size={16} className="absolute left-3 top-3 text-[hsl(var(--muted-foreground))]" /><input data-testid="input-search-materials" className="text-input py-2.5 pl-9 pr-3 text-sm" placeholder="搜索标题、关键词或原文…" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
         <label className="relative sm:w-48"><Filter size={15} className="pointer-events-none absolute left-3 top-3 text-[hsl(var(--muted-foreground))]" /><select data-testid="select-filter-dimension" className="select-input appearance-none py-2.5 pl-9 pr-8 text-sm" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">全部维度</option>{categories.dimensions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={15} className="pointer-events-none absolute right-3 top-3 text-[hsl(var(--muted-foreground))]" /></label>
       </div>
-      {filtered.length === 0 ? <div data-testid="empty-library" className="paper flex min-h-[255px] flex-col items-center justify-center text-center"><div className="mb-4 grid h-12 w-12 place-items-center rounded-full border border-dashed border-[hsl(var(--primary)/.4)] text-[hsl(var(--primary))]"><Library size={21} strokeWidth={1.5} /></div><div className="serif font-semibold">{materials.length === 0 ? '你的素材库还空着' : '没有找到这条素材'}</div><p className="mt-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">{materials.length === 0 ? '从上面贴一段新闻，给下一次写作留一盏灯。' : '试试换一个关键词，或清除筛选条件。'}</p></div> : <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">{filtered.map((material) => <MaterialCard key={material.id} material={material} onEdit={() => onEdit(material)} onDelete={() => onDelete(material.id)} onExport={() => downloadMarkdown(material)} />)}</div>}
+      {filtered.length === 0 ? <div data-testid="empty-library" className="paper flex min-h-[255px] flex-col items-center justify-center text-center"><div className="mb-4 grid h-12 w-12 place-items-center rounded-full border border-dashed border-[hsl(var(--primary)/.4)] text-[hsl(var(--primary))]"><Library size={21} strokeWidth={1.5} /></div><div className="serif font-semibold">{materials.length === 0 ? '你的素材库还空着' : '没有找到这条素材'}</div><p className="mt-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">{materials.length === 0 ? '从上面贴一段新闻，给下一次写作留一盏灯。' : '试试换一个关键词，或清除筛选条件。'}</p></div> : <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">{filtered.map((material) => <MaterialCard key={material.id} material={material} onEdit={() => onEdit(material)} onDelete={() => onDelete(material.id)} />)}</div>}
     </section>
   );
 }
@@ -515,14 +554,28 @@ function Home() {
   const [editing, setEditing] = useState<Material | null>(null);
   const [openAISettings, setOpenAISettings] = useState<OpenAISettings>(defaultOpenAISettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showApiKeyNotice, setShowApiKeyNotice] = useState(false);
   useEffect(() => {
     setMaterials(readMaterials());
     setOpenAISettings(readOpenAISettings());
+    try {
+      if (localStorage.getItem(API_KEY_NOTICE_KEY) !== '1') setShowApiKeyNotice(true);
+    } catch {
+      setShowApiKeyNotice(true);
+    }
   }, []);
   const saveOpenAISettings = (next: OpenAISettings) => {
     setOpenAISettings(next);
     sessionStorage.setItem(OPENAI_SETTINGS_KEY, JSON.stringify(next));
     setSettingsOpen(false);
+  };
+  const handleApiKeyNoticeConfirm = () => {
+    try {
+      localStorage.setItem(API_KEY_NOTICE_KEY, '1');
+    } catch {
+      // 隐私模式下无法持久化时，至少关闭本次弹窗
+    }
+    setShowApiKeyNotice(false);
   };
   const persist = (next: Material[]) => { setMaterials(next); writeMaterials(next); };
   const handleSaved = (material: Material) => {
@@ -543,6 +596,7 @@ function Home() {
         {active === 'desk' ? <><div className="mb-9 flex flex-wrap items-end justify-between gap-5 rise-in"><div><div className="eyebrow">A QUIET PLACE TO THINK</div><h1 data-testid="text-workspace-title" className="headline mt-3 max-w-[650px] text-4xl font-bold sm:text-5xl">把看见的，<br /><span className="text-[hsl(var(--primary))]">变成能写的。</span></h1><p className="mt-4 max-w-[490px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">粘贴一段新闻、政策或案例。AI 负责拆解，你负责判断。每一次编辑，都是把别人的故事变成自己的论据。</p></div><div className="flex items-center gap-3"><div className="hidden text-right sm:block"><div className="mono text-[10px] text-[hsl(var(--muted-foreground))]">MATERIALS SAVED</div><div className="serif text-2xl font-bold">{materials.length.toString().padStart(2, '0')}</div></div><button data-testid="button-scroll-library" className="action-subtle" onClick={() => { setActive('library'); document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' }); }}>浏览素材 <ArrowUpRight size={14} /></button></div></div><Editor onSaved={handleSaved} editing={editing} onCancelEdit={() => setEditing(null)} settings={openAISettings} onOpenSettings={() => setSettingsOpen(true)} /><LibrarySection materials={materials} onEdit={handleEdit} onDelete={handleDelete} /></> : <LibrarySection materials={materials} onEdit={handleEdit} onDelete={handleDelete} />}
       </div>
       {settingsOpen && <SettingsPanel value={openAISettings} onSave={saveOpenAISettings} onClose={() => setSettingsOpen(false)} />}
+      <ApiKeyNoticeModal open={showApiKeyNotice} onConfirm={handleApiKeyNoticeConfirm} />
     </Shell>
   );
 }
